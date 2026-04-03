@@ -17,8 +17,8 @@ Unlike traditional communication systems that use a single frequency, this syste
 - 🛰️ Radar-style visualization
 
 ---
+## 📂 Project Structure
 
-## 🛠️ Hardware Components
 FHSS-Communication-System/
 │
 ├── Arduino/
@@ -38,6 +38,7 @@ FHSS-Communication-System/
 │ └── report.pdf
 │
 └── README.md
+## 🛠️ Hardware Components
 
 - Arduino UNO R4 Minima (Transmitter)
 - Arduino Nano (Receiver)
@@ -145,4 +146,4 @@ If you like this project:
 
 Let’s connect and collaborate on exciting projects!
 
-## 📂 Project Structure
+
