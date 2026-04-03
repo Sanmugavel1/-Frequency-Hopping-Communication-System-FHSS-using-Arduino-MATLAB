@@ -1,0 +1,120 @@
+clc; clear; close all;
+
+%% 🔌 SERIAL SETUP
+port = "COM9";   % 🔴 Change if needed
+baud = 9600;
+
+s = serialport(port, baud);
+configureTerminator(s, "LF");
+flush(s);
+
+%% 📊 VARIABLES
+time = [];
+dataArr = [];
+channelArr = [];
+packetArr = [];
+reliabilityArr = [];
+
+expectedPackets = 0;
+receivedPackets = 0;
+
+startTime = tic;
+
+%% 📈 UI SETUP
+figure('Name','FHSS Dashboard','NumberTitle','off');
+tiledlayout(3,2);
+
+% Data Plot
+ax1 = nexttile;
+h1 = plot(NaN, NaN, 'LineWidth',2);
+title('Data'); grid on;
+
+% Channel Plot
+ax2 = nexttile;
+h2 = stairs(NaN, NaN, 'LineWidth',2);
+title('Channel'); grid on;
+
+% Status
+ax3 = nexttile;
+statusTxt = text(0.3, 0.5, 'WAITING', 'FontSize',14);
+axis off;
+
+% Packet Count
+ax4 = nexttile;
+pktTxt = text(0.2, 0.5, 'Packets: 0', 'FontSize',14);
+axis off;
+
+% Reliability Plot
+ax5 = nexttile;
+h5 = plot(NaN, NaN, 'LineWidth',2);
+title('Reliability (%)'); ylim([0 100]); grid on;
+
+% 🔥 POLAR FIX (IMPORTANT)
+ax6 = nexttile;
+pos = ax6.Position;
+delete(ax6);
+polarAx = polaraxes;
+polarAx.Position = pos;
+
+channels_unique = [10 40 70 100];
+theta = linspace(0, 2*pi, 5);
+
+%% 🔁 MAIN LOOP
+while ishandle(gcf)
+
+    if s.NumBytesAvailable > 0
+        
+        line = readline(s);
+        parts = strsplit(strtrim(line), ',');
+        
+        expectedPackets = expectedPackets + 1;
+        
+        % ✅ Correct string comparison
+        if length(parts) == 5 && strcmp(parts{1}, 'RX')
+            
+            receivedPackets = receivedPackets + 1;
+            
+            packet  = str2double(parts{2});
+            data    = str2double(parts{3});
+            channel = str2double(parts{4});
+            
+            t = toc(startTime);
+            
+            % Store data
+            time(end+1) = t;
+            dataArr(end+1) = data;
+            channelArr(end+1) = channel;
+            packetArr(end+1) = packet;
+            
+            % Update plots
+            set(h1, 'XData', time, 'YData', dataArr);
+            set(h2, 'XData', time, 'YData', channelArr);
+            
+            % Reliability
+            reliability = (receivedPackets / expectedPackets) * 100;
+            reliabilityArr(end+1) = reliability;
+            set(h5, 'XData', time, 'YData', reliabilityArr);
+            
+            % Text updates
+            statusTxt.String = "RECEIVING";
+            statusTxt.Color = 'g';
+            pktTxt.String = "Packets: " + receivedPackets;
+            
+            % 🛰️ Radar Plot
+            cla(polarAx);
+            values = zeros(1,4);
+            
+            for k = 1:4
+                if channel == channels_unique(k)
+                    values(k) = 1;
+                end
+            end
+            
+            polarplot(polarAx, theta, [values values(1)], 'LineWidth',2);
+            rlim(polarAx, [0 1.5]);
+            title(polarAx, ['Channel: ' num2str(channel)]);
+            
+            drawnow limitrate;
+        end
+    end
+end
